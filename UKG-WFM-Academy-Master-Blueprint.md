@@ -19,7 +19,7 @@ This is not a documentation library. It is a workforce engineering academy.
 
 ## GitHub Organization
 
-Recommended organization:
+Organization name:
 
 ```text
 UKG-WFM-Academy
@@ -437,7 +437,7 @@ Capstone sections:
 - presentation deliverable
 - scoring rubric
 
-## Recommended Learning Path
+## Learning Path
 
 ### Beginner
 
@@ -473,7 +473,7 @@ Capstone sections:
 - `ukg-wfm-implementation-playbooks`
 - `ukg-wfm-enterprise-standards`
 
-## Suggested Certification Tracks
+## Certification Tracks
 
 ### WFM Operations Analyst
 
@@ -553,7 +553,7 @@ Focus:
 - implementation strategy
 - executive governance
 
-## Future Expansion Areas
+## Expansion Domains
 
 - AI-assisted workforce operations
 - workforce copilots
@@ -580,15 +580,3 @@ The academy is successful when each repository can support:
 - governance review
 - certification assessment
 - future automation or analytics expansion
-
-## Next Artifacts
-
-After this blueprint is accepted, generate:
-
-```text
-REPOSITORY_CATALOG.md
-COVERAGE_MATRIX.md
-BUILD_SEQUENCE.md
-```
-
-These will define every repository, detailed topic ownership, and the build order for the complete academy.
