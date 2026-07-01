@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "ingest": "tsx scripts/ingest-catalog.ts",
     "scorecard": "tsx scripts/generate-scorecard.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:all-apis": "tsx scripts/test-all-apis.ts"
   },
   "repository": {
     "type": "git",
