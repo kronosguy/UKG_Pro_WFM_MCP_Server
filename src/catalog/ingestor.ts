@@ -8,6 +8,7 @@ export interface IngestOptions {
   openApiPath?: string;
   seedPath?: string;
   catalogUrl?: string;
+  useSeedOnly?: boolean;
 }
 
 export class CatalogIngestor {
@@ -16,6 +17,18 @@ export class CatalogIngestor {
 
   async ingest(opts: IngestOptions = {}): Promise<EndpointIntelligence[]> {
     let endpoints: EndpointIntelligence[] = [];
+    const seedPath =
+      opts.seedPath ||
+      path.resolve('data/openapi-seed/endpoints.seed.json');
+
+    if (opts.useSeedOnly) {
+      const seedRaw = await fs.readFile(seedPath, 'utf-8');
+      endpoints = JSON.parse(seedRaw);
+      endpoints = endpoints.map(endpoint => this.enrichEndpoint(endpoint));
+      this.loadedFrom = `seed:${seedPath}`;
+      this.cache = endpoints;
+      return endpoints;
+    }
 
     if (opts.openApiPath) {
       endpoints = await this.ingestOneOpenApi(opts.openApiPath);
@@ -27,7 +40,6 @@ export class CatalogIngestor {
     }
 
     if (endpoints.length === 0) {
-      const seedPath = opts.seedPath || path.resolve('data/openapi-seed/endpoints.seed.json');
       const seedRaw = await fs.readFile(seedPath, 'utf-8');
       endpoints = JSON.parse(seedRaw);
       this.loadedFrom = `seed:${seedPath}`;

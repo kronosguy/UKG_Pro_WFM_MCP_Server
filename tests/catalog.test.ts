@@ -3,36 +3,48 @@ import { CatalogIngestor } from '../src/catalog/ingestor.js';
 import { EndpointGraphBuilder } from '../src/catalog/graph.js';
 
 describe('Catalog + Classifier + Graph', () => {
-  it('ingests seed endpoints', async () => {
-    const ing = new CatalogIngestor();
-    const eps = await ing.ingest({
+  it('ingests seed endpoints without calling the live catalog', async () => {
+    const ingestor = new CatalogIngestor();
+
+    const endpoints = await ingestor.ingest({
       seedPath: 'data/openapi-seed/endpoints.seed.json',
-      catalogUrl: 'seed-only'
+      useSeedOnly: true
     });
 
-    expect(eps.length).toBeGreaterThan(0);
-    expect(eps.some(e => e.objectType === 'KnownPlace')).toBe(true);
-  }, 15000);
+    expect(endpoints.length).toBeGreaterThan(0);
+    expect(ingestor.getLoadedSource()).toContain('seed:');
+    expect(
+      endpoints.some(endpoint => endpoint.objectType === 'KnownPlace')
+    ).toBe(true);
+  });
 
-  it('classifies correctly', async () => {
-    const ing = new CatalogIngestor();
-    const eps = await ing.ingest({
+  it('classifies controlled writes correctly', async () => {
+    const ingestor = new CatalogIngestor();
+
+    const endpoints = await ingestor.ingest({
       seedPath: 'data/openapi-seed/endpoints.seed.json',
-      catalogUrl: 'seed-only'
+      useSeedOnly: true
     });
 
-    const write = eps.find(e => e.operationId === 'createShift');
-    expect(write?.requiresConfirmation).toBe(true);
-  }, 15000);
+    const createShift = endpoints.find(
+      endpoint => endpoint.operationId === 'createShift'
+    );
 
-  it('builds graph with hydration edges', async () => {
-    const ing = new CatalogIngestor();
-    const eps = await ing.ingest({
+    expect(createShift).toBeTruthy();
+    expect(createShift?.requiresConfirmation).toBe(true);
+  });
+
+  it('builds graph nodes and hydration relationships', async () => {
+    const ingestor = new CatalogIngestor();
+
+    const endpoints = await ingestor.ingest({
       seedPath: 'data/openapi-seed/endpoints.seed.json',
-      catalogUrl: 'seed-only'
+      useSeedOnly: true
     });
 
-    const graph = new EndpointGraphBuilder().build(eps);
+    const graphBuilder = new EndpointGraphBuilder();
+    const graph = graphBuilder.build(endpoints);
+
     expect(graph.nodes.size).toBeGreaterThan(0);
-  }, 15000);
+  });
 });
