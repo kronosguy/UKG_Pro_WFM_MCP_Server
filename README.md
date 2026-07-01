@@ -1,378 +1,286 @@
-# UKG Pro WFM MCP Server
+<p align="center">
+  <img src="docs/assets/ukg-mcp-hero.svg" alt="UKG Pro WFM MCP Server" width="100%">
+</p>
 
-A reasoning, hydration, orchestration, and execution layer for the UKG Pro Workforce Management API ecosystem.
+<h1 align="center">UKG Pro WFM MCP Server</h1>
 
-This project transforms UKG Pro WFM from disconnected REST endpoints into a self-sufficient operational intelligence layer capable of understanding natural language requests, resolving missing information, traversing object relationships, hydrating partial payloads, validating completeness, and returning complete operational answers.
+<p align="center">
+  <strong>Self-sufficient reasoning, hydration, orchestration, and execution layer for the UKG Pro Workforce Management API ecosystem.</strong>
+</p>
 
----
-
-## Philosophy
-
-Traditional API integrations operate like this:
-
-User Request
--> Endpoint Selection
--> API Response
--> Return Result
-
-This server operates differently:
-
-Natural Language Request
--> Intent Detection
--> Missing Input Resolution
--> Endpoint Discovery
--> Candidate Selection
--> Object Hydration
--> Relationship Traversal
--> Completeness Validation
--> Confidence Scoring
--> Full Response Generation
-
-The objective is simple:
-
-Never return a partial answer when additional authoritative information exists.
+<p align="center">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-100%25-3178C6?style=for-the-badge&logo=typescript&logoColor=white">
+  <img alt="MCP Server" src="https://img.shields.io/badge/MCP-Server-2ECC71?style=for-the-badge">
+  <img alt="UKG Pro WFM" src="https://img.shields.io/badge/UKG%20Pro-WFM-111827?style=for-the-badge">
+  <img alt="Status" src="https://img.shields.io/badge/Status-Active-22C55E?style=for-the-badge">
+</p>
 
 ---
 
-## Core Capabilities
+## What This Is
 
-### Natural Language Understanding
+This is not a thin OpenAPI wrapper.
 
-The server accepts natural language instead of requiring endpoint knowledge or object identifiers.
+This server is designed to behave like a UKG Pro WFM reasoning layer. It accepts natural language, determines what the user is really asking, resolves missing inputs, discovers the correct API path, hydrates partial objects, traverses references, validates completeness, scores confidence, and returns full operational answers.
 
-Examples:
+---
 
-- Show me the complete details of Hillcrest South including geofence configuration.
-- Find the ICU employee group and hydrate all linked organizational references.
-- Why did employee 12345 receive an unscheduled exception yesterday?
-- Compare scheduled versus actual worked hours for the Emergency Department this week.
+## Core Rule
 
-### Missing Input Resolution
+> Search and list endpoints are discovery only. They are not final truth.
 
-The server automatically resolves missing information before attempting to answer.
+If an API response contains IDs, references, partial objects, child references, parent references, profile references, or linked configuration, the server must hydrate those objects before answering.
 
-Resolution sources include:
+---
 
-- prior tool results
-- tenant metadata
-- parent relationships
-- child relationships
-- search endpoints
-- identifier crosswalks
-- organizational context
-- inferred relationships
-- historical lookups
+## Execution Model
 
-Clarification questions are only asked after all safe resolution paths have been exhausted.
+<table>
+  <tr>
+    <th>Traditional API Flow</th>
+    <th>UKG Pro WFM MCP Flow</th>
+  </tr>
+  <tr>
+    <td>User request</td>
+    <td>Natural language request</td>
+  </tr>
+  <tr>
+    <td>Pick endpoint manually</td>
+    <td>Detect intent and entities</td>
+  </tr>
+  <tr>
+    <td>Call one API</td>
+    <td>Resolve missing inputs</td>
+  </tr>
+  <tr>
+    <td>Return raw result</td>
+    <td>Discover, hydrate, validate, and answer</td>
+  </tr>
+</table>
 
-### Universal Object Hydration
+---
 
-Search and list endpoints are treated as discovery mechanisms only.
+## Capabilities
 
-Traditional API result:
-
-{
-  "id": 1234,
-  "name": "Hillcrest South"
-}
-
-Server behavior:
-
-1. Resolve object
-2. Discover detail endpoint
-3. Retrieve complete object
-4. Discover referenced objects
-5. Hydrate references
-6. Traverse relationships
-7. Validate completeness
-8. Return final answer
-
-The hydration engine applies to every object type:
-
-- employees
-- managers
-- schedules
-- punches
-- timecards
-- employee groups
-- known places
-- location sets
-- Hyperfinds
-- pay rules
-- work rules
-- access profiles
-- accruals
-- leave cases
-- devices
-- integrations
-- workflow definitions
-- business process objects
-- future objects introduced by new OpenAPI specifications
-
-### Endpoint Graph Intelligence
-
-The server builds an internal graph of:
-
-Nodes:
-
-- API endpoints
-- object types
-- identifiers
-- domains
-- schemas
-- tools
-
-Relationships:
-
-- RETURNS
-- REQUIRES
-- REFERENCES
-- HYDRATES
-- MUTATES
-- LISTS
-- SEARCHES
-- BELONGS_TO
-- HAS_PARENT
-- HAS_CHILD
-
-This graph powers:
-
-- endpoint discovery
-- hydration routing
-- confidence scoring
-- missing input resolution
-- relationship traversal
-
-### Confidence Engine
-
-Every response receives a confidence classification.
-
-CERTAIN
-- unique immutable identifier
-- full object hydration
-- no unresolved dependencies
-- no conflicting records
-
-HIGH
-- high confidence candidate
-- full detail retrieved
-- minor references unavailable
-
-MEDIUM
-- likely candidate
-- some unresolved references
-
-LOW
-- ambiguity exists
-
-BLOCKED
-- insufficient information
-- permission restrictions
-- unavailable endpoint
+| Capability | Purpose |
+|---|---|
+| Natural language routing | Understands operational questions without requiring endpoint knowledge |
+| Missing input resolution | Finds IDs, refs, dates, employees, groups, profiles, and related objects |
+| Discovery-only enforcement | Prevents list/search responses from being treated as final truth |
+| Universal hydration | Pulls full detail for every reachable partial object |
+| Object graph traversal | Follows parent, child, profile, group, org, and setup references |
+| Completeness validation | Calculates whether the answer is complete enough to return |
+| Confidence scoring | Classifies answers as CERTAIN, HIGH, MEDIUM, LOW, or BLOCKED |
+| Write safety | Requires hydration, dry-run, explicit confirmation, and re-read after writes |
+| Audit logging | Records source chain, duration, confidence, and affected objects |
 
 ---
 
 ## Supported Domains
 
-- Attendance
-- Common Resources
-- Employee Self Service
-- Forecasting
-- Healthcare Productivity
-- Human Capital Management
-- Leave
-- People
-- Person Assignments
-- Platform
-- Scheduling
-- Scheduling Setup
-- Timekeeping
-- Timekeeping Setup
-- Timekeeping Timecards
-- Timekeeping Bulk Operations
-- Universal Device Manager
-- Webhook Events
+| Domain | Coverage Intent |
+|---|---|
+| Attendance | Events, patterns, and attendance-related operational context |
+| Common Resources | Shared objects, lookup values, Hyperfinds, and common references |
+| Employee Self Service | Employee-facing objects and request flows |
+| Forecasting | Forecast-related workforce planning data |
+| Healthcare Productivity | Productivity and staffing context |
+| HCM | HCM-connected workforce data |
+| Leave | Leave cases, requests, balances, and related context |
+| People | Person, employee, manager, job, and org details |
+| Person Assignments | Assignments, roles, and workforce relationships |
+| Platform | Tenant, metadata, and platform-level capabilities |
+| Scheduling | Schedules, shifts, coverage, and schedule analysis |
+| Scheduling Setup | Scheduling configuration and setup references |
+| Timekeeping | Timekeeping objects and operational time data |
+| Timekeeping Setup | Pay rules, work rules, pay codes, and setup metadata |
+| Timekeeping Timecards | Timecards, punches, exceptions, totals, approvals |
+| Timekeeping Bulk Operations | Controlled bulk workflows with guardrails |
+| Universal Device Manager | Device and clock-related operational context |
+| Webhook Events | Event subscriptions and event payload normalization |
 
-Additional domains are automatically discovered during catalog ingestion.
+---
+
+## Hydration Behavior
+
+Traditional API result:
+
+<pre><code>{
+  "id": 1234,
+  "name": "Hillcrest South"
+}</code></pre>
+
+Server behavior:
+
+<pre><code>Resolve object
+→ Discover detail endpoint
+→ Retrieve complete object
+→ Detect references
+→ Hydrate references
+→ Traverse relationships
+→ Validate completeness
+→ Return final answer</code></pre>
+
+This applies to every object type, not just Known Places.
+
+---
+
+## Confidence Levels
+
+| Level | Meaning |
+|---|---|
+| CERTAIN | Unique immutable identifier, full hydration, no unresolved dependencies, no conflicts |
+| HIGH | Strong candidate, full target detail, minor non-critical references unavailable |
+| MEDIUM | Likely answer, but some relevant references remain unresolved |
+| LOW | Ambiguous or incomplete |
+| BLOCKED | Cannot proceed safely because required data, access, or endpoint is unavailable |
 
 ---
 
 ## Architecture
 
-Catalog Layer
-- OpenAPI ingestion
-- endpoint normalization
-- endpoint classification
-- graph construction
-
-Reasoning Engine
-- intent detection
-- entity extraction
-- missing input resolution
-- candidate ranking
-- confidence scoring
-
-Hydration Engine
-- response graph parsing
-- object hydration
-- relationship traversal
-- dependency discovery
-- completeness validation
-
-API Client
-- OAuth authentication
-- retry policies
-- pagination
-- rate limiting
-- request tracing
-- audit logging
-
-Tool Layer
-- MCP tool registration
-- execution orchestration
-- write safety controls
-- workflow composition
+<table>
+  <tr>
+    <th>Layer</th>
+    <th>Responsibilities</th>
+  </tr>
+  <tr>
+    <td>Catalog</td>
+    <td>OpenAPI ingestion, endpoint normalization, classification, endpoint graph</td>
+  </tr>
+  <tr>
+    <td>Reasoning Engine</td>
+    <td>Intent detection, entity extraction, missing input resolution, candidate ranking</td>
+  </tr>
+  <tr>
+    <td>Hydration Engine</td>
+    <td>Response graph parsing, dependency traversal, object hydration, completeness validation</td>
+  </tr>
+  <tr>
+    <td>API Client</td>
+    <td>Authentication, retries, pagination, rate limits, request tracing</td>
+  </tr>
+  <tr>
+    <td>Tool Layer</td>
+    <td>MCP tool registration, workflow composition, write safety, final answer formatting</td>
+  </tr>
+</table>
 
 ---
 
 ## Execution Pipeline
 
-Natural Language
-↓
-Intent Detection
-↓
-Entity Extraction
-↓
-Missing Input Resolution
-↓
-Discovery Endpoints
-↓
-Candidate Ranking
-↓
-Primary Endpoint Execution
-↓
-Response Graph Parsing
-↓
-Hydration Engine
-↓
-Completeness Validation
-↓
-Confidence Scoring
-↓
-Business Interpretation
-↓
-Response Formatting
-↓
-Audit Logging
+<pre><code>Natural Language
+→ Intent Detection
+→ Entity Extraction
+→ Missing Input Resolution
+→ Discovery Endpoint
+→ Candidate Ranking
+→ Primary Endpoint
+→ Response Graph Parsing
+→ Hydration Engine
+→ Completeness Validation
+→ Confidence Scoring
+→ Business Interpretation
+→ Response Formatting
+→ Audit Logging</code></pre>
 
 ---
 
-## Installation
+## Primary Tool
 
-Clone Repository
+### ukg_wfm_ask
 
-git clone https://github.com/kronosguy/UKG_Pro_WFM_MCP_Server.git
-cd UKG_Pro_WFM_MCP_Server
+Use this for natural language requests.
 
-Install Dependencies
+Examples:
 
-npm install
+<pre><code>Show me the complete employee profile for employee 12345 and hydrate all manager and organizational references.
 
-Configure Environment
+Explain every exception on employee 12345's timecard for last week.
 
-cp .env.example .env
+Investigate why employee 12345 failed geofence validation yesterday.
 
-Environment Variables
+Compare scheduled versus actual worked hours for ICU employees this pay period.
 
-UKG_BASE_URL=
-UKG_CLIENT_ID=
-UKG_CLIENT_SECRET=
-UKG_APP_KEY=
-UKG_USERNAME=
-UKG_PASSWORD=
-UKG_AUTH_MODE=client_credentials
-
-Start Development Server
-
-npm run dev
-
-Build Production
-
-npm run build
-
-Execute Tests
-
-npm test
+Hydrate the Emergency Department employee group and identify all connected profiles and references.</code></pre>
 
 ---
 
-## Example Queries
-
-- Show me the complete employee profile for employee 12345 and hydrate all manager and organizational references.
-- Explain every exception on employee 12345's timecard for last week.
-- Investigate why employee 12345 failed geofence validation yesterday.
-- Compare scheduled versus actual worked hours for ICU employees this pay period.
-- Hydrate the Emergency Department employee group and identify all connected profiles and references.
-
----
-
-## Write Safety Controls
+## Write Safety
 
 Every write operation follows the same lifecycle:
 
-Resolve Inputs
--> Hydrate Target
--> Hydrate Dependencies
--> Dry Run
--> User Confirmation
--> Execute
--> Rehydrate
--> Return Before/After State
+<pre><code>Resolve Inputs
+→ Hydrate Target
+→ Hydrate Dependencies
+→ Dry Run
+→ Explicit Confirmation
+→ Execute
+→ Rehydrate
+→ Return Before/After State</code></pre>
 
-Destructive operations cannot execute from:
+Write, delete, and bulk operations cannot execute from:
 
-- names
+- name-only matches
 - search results
 - partial objects
 - inferred identities
+- ambiguous references
 
 Only fully hydrated targets are eligible for mutation.
 
 ---
 
-## Audit Logging
+## Installation
 
-Every operation generates an audit event containing:
+Clone the repository:
 
-- request identifier
-- timestamp
-- user action
-- endpoint chain
-- duration
-- confidence score
-- hydration statistics
-- affected objects
+<pre><code>git clone https://github.com/kronosguy/UKG_Pro_WFM_MCP_Server.git
+cd UKG_Pro_WFM_MCP_Server</code></pre>
+
+Install dependencies:
+
+<pre><code>npm install</code></pre>
+
+Configure environment:
+
+<pre><code>cp .env.example .env</code></pre>
+
+Required environment variables:
+
+<pre><code>UKG_BASE_URL=
+UKG_CLIENT_ID=
+UKG_CLIENT_SECRET=
+UKG_APP_KEY=
+UKG_USERNAME=
+UKG_PASSWORD=
+UKG_AUTH_MODE=client_credentials</code></pre>
+
+Start development server:
+
+<pre><code>npm run dev</code></pre>
+
+Build production:
+
+<pre><code>npm run build</code></pre>
+
+Run tests:
+
+<pre><code>npm test</code></pre>
 
 ---
 
-## Configuration
+## Scorecard
 
-Scorecard
+Generate endpoint intelligence and risk outputs:
 
-npm run scorecard
+<pre><code>npm run scorecard</code></pre>
 
-Produces:
+Outputs:
 
 - docs/endpoint-scorecard.json
 - docs/tool-risk-matrix.json
-
-OpenAPI Refresh
-
-npm run ingest
-
-Graph Rebuild
-
-npm run graph
 
 ---
 
