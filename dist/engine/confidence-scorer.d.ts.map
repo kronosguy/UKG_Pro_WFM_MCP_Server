@@ -1,0 +1,1 @@
+{"version":3,"file":"confidence-scorer.d.ts","sourceRoot":"","sources":["../../src/engine/confidence-scorer.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAmB,kBAAkB,EAAE,MAAM,mBAAmB,CAAC;AAE1F,qBAAa,gBAAgB;IAC3B,KAAK,CAAC,YAAY,EAAE,kBAAkB,EAAE,aAAa,EAAE,OAAO,EAAE,WAAW,EAAE,OAAO,EAAE,WAAW,EAAE,MAAM,GAAG,gBAAgB;CAqC7H"}

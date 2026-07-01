@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "ukg-pro-wfm": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "/workspaces/UKG_WFM_Academy",
+      "env": {
+        "UKG_WFM_BEARER_TOKEN": "${UKG_WFM_BEARER_TOKEN}",
+        "UKG_WFM_BASE_URL": "https://api.ultipro.com/workforce/v1",
+        "UKG_WFM_TENANT_ID": "YOUR_TENANT"
+      }
+    }
+  }
+}

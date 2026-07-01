@@ -1,0 +1,276 @@
+{
+  "generatedAt": "2026-07-01T04:22:59.108Z",
+  "total": 25,
+  "byDomain": {
+    "people": 2,
+    "common_resources": 5,
+    "scheduling": 3,
+    "scheduling_setup": 1,
+    "timekeeping": 3,
+    "timekeeping_timecards": 1,
+    "leave": 1,
+    "attendance": 1,
+    "universal_device_manager": 1,
+    "platform": 1,
+    "webhook_events": 1,
+    "timekeeping_bulk_operations": 1,
+    "timekeeping_setup": 1,
+    "forecasting": 1,
+    "person_assignments": 1,
+    "hcm": 1
+  },
+  "byClassification": {
+    "DISCOVERY_ONLY": 12,
+    "DETAIL_HYDRATOR": 11,
+    "ACTION_EXECUTOR": 1,
+    "BULK_MUTATOR": 1
+  },
+  "byRiskLevel": {
+    "SAFE_READ": 23,
+    "CONTROLLED_WRITE": 1,
+    "DANGEROUS_WRITE": 1
+  },
+  "finalAnswerEligible": 12,
+  "writeOperations": 2,
+  "hydrationAware": 24,
+  "sampleIntelligenceRecords": [
+    {
+      "domain": "people",
+      "operationId": "searchPersons",
+      "method": "POST",
+      "path": "/v1/commons/persons/extensions/multi_read",
+      "classification": "DISCOVERY_ONLY",
+      "objectType": "Person",
+      "inputIdentifiers": [
+        "searchCriteria",
+        "hyperfindQuery",
+        "effectiveDate"
+      ],
+      "outputIdentifiers": [
+        "personId",
+        "personNumber"
+      ],
+      "referenceFields": [
+        "personId",
+        "personNumber",
+        "managerPersonId",
+        "orgRef",
+        "id",
+        "employeeId",
+        "managerId",
+        "jobId",
+        "profileRef",
+        "locationId",
+        "scheduleId",
+        "punchId",
+        "timecardId",
+        "hyperfindId",
+        "knownPlaceId"
+      ],
+      "hydrationCandidates": [
+        "getPersonDetail",
+        "retrievePersonById"
+      ],
+      "childCollectionCandidates": [
+        "getPersonJobs",
+        "getPersonAssignments"
+      ],
+      "reverseLookupCandidates": [
+        "searchPersonsByBadge"
+      ],
+      "riskLevel": "SAFE_READ",
+      "toolEligible": true,
+      "finalAnswerEligible": false,
+      "requiresConfirmation": false,
+      "notes": "List/search only. Always hydrate via detail for full Person record."
+    },
+    {
+      "domain": "people",
+      "operationId": "getPersonDetail",
+      "method": "GET",
+      "path": "/v1/commons/persons/{personId}",
+      "classification": "DETAIL_HYDRATOR",
+      "objectType": "Person",
+      "inputIdentifiers": [
+        "personId"
+      ],
+      "outputIdentifiers": [
+        "personId",
+        "personNumber",
+        "persistentId"
+      ],
+      "referenceFields": [
+        "managerPersonId",
+        "primaryJobRef",
+        "homeOrgRef",
+        "displayProfileRef",
+        "dataAccessProfileRef",
+        "id",
+        "personId",
+        "employeeId",
+        "managerId",
+        "jobId",
+        "orgRef",
+        "profileRef",
+        "locationId",
+        "scheduleId",
+        "punchId",
+        "timecardId",
+        "hyperfindId",
+        "knownPlaceId"
+      ],
+      "hydrationCandidates": [
+        "getJobDetail",
+        "getOrgDetail",
+        "getDisplayProfile"
+      ],
+      "childCollectionCandidates": [
+        "listPersonJobs",
+        "listPersonGroups"
+      ],
+      "reverseLookupCandidates": [],
+      "riskLevel": "SAFE_READ",
+      "toolEligible": true,
+      "finalAnswerEligible": true,
+      "requiresConfirmation": false,
+      "notes": "Primary detail hydrator for Person. Returns full metadata including profile refs."
+    },
+    {
+      "domain": "common_resources",
+      "operationId": "searchKnownPlaces",
+      "method": "GET",
+      "path": "/v1/commons/known_places",
+      "classification": "DISCOVERY_ONLY",
+      "objectType": "KnownPlace",
+      "inputIdentifiers": [
+        "locationSetId",
+        "name"
+      ],
+      "outputIdentifiers": [
+        "knownPlaceId"
+      ],
+      "referenceFields": [
+        "knownPlaceId",
+        "locationSetRef",
+        "geofenceRef",
+        "id",
+        "personId",
+        "employeeId",
+        "managerId",
+        "jobId",
+        "orgRef",
+        "profileRef",
+        "locationId",
+        "scheduleId",
+        "punchId",
+        "timecardId",
+        "hyperfindId"
+      ],
+      "hydrationCandidates": [
+        "getKnownPlaceDetail"
+      ],
+      "childCollectionCandidates": [],
+      "reverseLookupCandidates": [],
+      "riskLevel": "SAFE_READ",
+      "toolEligible": true,
+      "finalAnswerEligible": false,
+      "requiresConfirmation": false,
+      "notes": "Discovery. Must hydrate KnownPlaceDetail for full geofence + effective status."
+    },
+    {
+      "domain": "common_resources",
+      "operationId": "getKnownPlaceDetail",
+      "method": "GET",
+      "path": "/v1/commons/known_places/{knownPlaceId}",
+      "classification": "DETAIL_HYDRATOR",
+      "objectType": "KnownPlace",
+      "inputIdentifiers": [
+        "knownPlaceId"
+      ],
+      "outputIdentifiers": [
+        "knownPlaceId",
+        "persistentId"
+      ],
+      "referenceFields": [
+        "locationSetId",
+        "geofenceId",
+        "createdBy",
+        "id",
+        "personId",
+        "employeeId",
+        "managerId",
+        "jobId",
+        "orgRef",
+        "profileRef",
+        "locationId",
+        "scheduleId",
+        "punchId",
+        "timecardId",
+        "hyperfindId",
+        "knownPlaceId"
+      ],
+      "hydrationCandidates": [
+        "getLocationSet",
+        "getGeofence"
+      ],
+      "childCollectionCandidates": [],
+      "reverseLookupCandidates": [],
+      "riskLevel": "SAFE_READ",
+      "toolEligible": true,
+      "finalAnswerEligible": true,
+      "requiresConfirmation": false,
+      "notes": "Full detail including coordinates, radius, effective dates."
+    },
+    {
+      "domain": "common_resources",
+      "operationId": "searchEmployeeGroups",
+      "method": "POST",
+      "path": "/v1/commons/employee_groups/search",
+      "classification": "DISCOVERY_ONLY",
+      "objectType": "EmployeeGroup",
+      "inputIdentifiers": [
+        "name",
+        "orgMapGroupRef"
+      ],
+      "outputIdentifiers": [
+        "employeeGroupId"
+      ],
+      "referenceFields": [
+        "employeeGroupId",
+        "orgMapGroupRef",
+        "costCenterPattern",
+        "id",
+        "personId",
+        "employeeId",
+        "managerId",
+        "jobId",
+        "orgRef",
+        "profileRef",
+        "locationId",
+        "scheduleId",
+        "punchId",
+        "timecardId",
+        "hyperfindId",
+        "knownPlaceId"
+      ],
+      "hydrationCandidates": [
+        "getEmployeeGroupDetail"
+      ],
+      "childCollectionCandidates": [
+        "listEmployeeGroupMembers"
+      ],
+      "reverseLookupCandidates": [],
+      "riskLevel": "SAFE_READ",
+      "toolEligible": true,
+      "finalAnswerEligible": false,
+      "requiresConfirmation": false,
+      "notes": "Hydrate fully to get version, updateDtm, linked org refs."
+    }
+  ],
+  "complianceNotes": [
+    "Search/list endpoints marked DISCOVERY_ONLY with finalAnswerEligible=false",
+    "Every DETAIL_HYDRATOR is finalAnswerEligible only after hydration",
+    "All writes require confirmation + pre-hydration",
+    "Graph contains hydration edges for every reference pattern"
+  ]
+}

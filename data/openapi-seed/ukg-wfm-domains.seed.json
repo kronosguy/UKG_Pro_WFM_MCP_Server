@@ -1,0 +1,24 @@
+{
+  "domains": [
+    "attendance",
+    "common_resources",
+    "employee_self_service",
+    "forecasting",
+    "healthcare_productivity",
+    "hcm",
+    "leave",
+    "people",
+    "person_assignments",
+    "platform",
+    "webhook_events",
+    "scheduling",
+    "scheduling_setup",
+    "timekeeping",
+    "timekeeping_setup",
+    "timekeeping_timecards",
+    "timekeeping_bulk_operations",
+    "universal_device_manager"
+  ],
+  "version": "2026.07-seed-v1",
+  "description": "Seed intelligence for UKG Pro WFM domains. Used to bootstrap the endpoint graph when full OpenAPI is unavailable. Production deploys should ingest official specs."
+}
