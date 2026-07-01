@@ -55,8 +55,7 @@ async function main() {
         .string()
         .min(1)
         .describe('Natural language UKG Pro WFM question or request.'),
-      inputs: z
-        .record(z.any())
+      inputs: z.record(z.string(), z.any())
         .optional()
         .describe('Optional structured inputs such as employeeId, personId, dateRange, knownPlaceId, or groupId.')
     },
