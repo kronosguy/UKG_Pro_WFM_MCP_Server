@@ -151,7 +151,8 @@ export class CatalogIngestor {
     if (text.includes('timecard')) return 'Timecard';
     if (text.includes('punch')) return 'Punch';
     if (text.includes('schedule')) return 'Schedule';
-    if (text.includes('known place') || text.includes('knownplace') || p.toLowerCase().includes('known')) return 'KnownPlace';
+    if (p.toLowerCase().includes('known_ip') || text.includes('known ip') || text.includes('ip address')) return 'KnownIpAddress';
+    if (text.includes('known place') || text.includes('knownplace') || p.toLowerCase().includes('known_places')) return 'KnownPlace';
     if (text.includes('employee group') || text.includes('employeegroup')) return 'EmployeeGroup';
     if (text.includes('hyperfind')) return 'Hyperfind';
     if (text.includes('pay code') || text.includes('paycode')) return 'PayCode';

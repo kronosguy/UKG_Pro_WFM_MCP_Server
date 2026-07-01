@@ -144,8 +144,9 @@ export class IntentRouter {
     }
 
     if (parsed.objectTypes.includes('KnownPlace')) {
-      if (/known|place|geofence|geo|location/.test(text)) score += 80;
-      if (/activity|activities|work\/activities/.test(text)) score -= 200;
+      if (/known[_-]?places|known place|geofence|geo|location/i.test(text)) score += 100;
+      if (/known[_-]?ip|ip address|ip_addresses|startingiprange|endingiprange/i.test(text)) score -= 250;
+      if (/activity|activities|work\/activities/i.test(text)) score -= 200;
     }
 
     if (parsed.objectTypes.includes('Person')) {
