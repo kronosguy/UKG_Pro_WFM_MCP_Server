@@ -1,14 +1,10 @@
-import fs from "node:fs";
+import { CatalogIngestor } from "../src/catalog/ingestor.js";
 
-const seedPath = "data/openapi-seed/endpoints.seed.json";
+const ingestor = new CatalogIngestor();
+const endpoints = await ingestor.ingest();
 
-if (!fs.existsSync(seedPath)) {
-  throw new Error(`Missing ${seedPath}`);
-}
-
-const endpoints = JSON.parse(fs.readFileSync(seedPath, "utf8"));
-
-console.log(`Testing all ${endpoints.length} endpoint definitions\n`);
+console.log(`Testing all ${endpoints.length} endpoint definitions`);
+console.log(`Source: ${ingestor.getLoadedSource()}\n`);
 
 let passed = 0;
 let failed = 0;
@@ -27,9 +23,7 @@ for (const endpoint of endpoints) {
     String(endpoint.method).toUpperCase()
   );
 
-  if (!validMethod) {
-    errors.push(`invalid method: ${endpoint.method}`);
-  }
+  if (!validMethod) errors.push(`invalid method: ${endpoint.method}`);
 
   if (errors.length > 0) {
     failed++;
@@ -37,7 +31,6 @@ for (const endpoint of endpoints) {
     console.log(`  ${errors.join(", ")}`);
   } else {
     passed++;
-    console.log(`PASS ${endpoint.operationId}`);
   }
 }
 
@@ -48,6 +41,4 @@ console.log(`Passed: ${passed}`);
 console.log(`Failed: ${failed}`);
 console.log("==============================");
 
-if (failed > 0) {
-  process.exit(1);
-}
+if (failed > 0) process.exit(1);

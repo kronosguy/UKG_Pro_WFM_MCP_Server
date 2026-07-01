@@ -1,81 +1,98 @@
-/**
- * OpenAPI Catalog Ingestor
- * Loads official OpenAPI (yaml/json), falls back to seed, produces EndpointIntelligence records.
- * Supports future discovered domains.
- */
 import fs from 'fs/promises';
 import path from 'path';
-import yaml from 'yaml';
 import SwaggerParser from '@apidevtools/swagger-parser';
-import { EndpointIntelligence, HttpMethod, CatalogSeed } from '../types/index.js';
+import { EndpointIntelligence, HttpMethod } from '../types/index.js';
 import { classifyEndpoint } from './classifier.js';
 
 export interface IngestOptions {
   openApiPath?: string;
   seedPath?: string;
-  baseUrl?: string;
+  catalogUrl?: string;
 }
 
 export class CatalogIngestor {
   private cache: EndpointIntelligence[] = [];
-  private loadedFrom: string = 'none';
+  private loadedFrom = 'none';
 
   async ingest(opts: IngestOptions = {}): Promise<EndpointIntelligence[]> {
-    const seedPath = opts.seedPath || path.resolve('data/openapi-seed/endpoints.seed.json');
     let endpoints: EndpointIntelligence[] = [];
 
-    // 1. Try to load official OpenAPI if provided
     if (opts.openApiPath) {
-      try {
-        const api = await SwaggerParser.parse(opts.openApiPath);
-        endpoints = this.parseOpenApiToIntelligence(api);
-        this.loadedFrom = `openapi:${opts.openApiPath}`;
-      } catch (e) {
-        console.warn('[Ingestor] Failed to parse provided OpenAPI, falling back to seed.', e);
-      }
+      endpoints = await this.ingestOneOpenApi(opts.openApiPath);
+      this.loadedFrom = `openapi:${opts.openApiPath}`;
+    } else {
+      endpoints = await this.ingestUkgCatalog(
+        opts.catalogUrl || 'https://developer.ukg.com/wfm/openapi'
+      );
     }
 
-    // 2. Fallback to seed (always merge/augment)
     if (endpoints.length === 0) {
+      const seedPath = opts.seedPath || path.resolve('data/openapi-seed/endpoints.seed.json');
       const seedRaw = await fs.readFile(seedPath, 'utf-8');
-      const seed: EndpointIntelligence[] = JSON.parse(seedRaw);
-      endpoints = seed;
+      endpoints = JSON.parse(seedRaw);
       this.loadedFrom = `seed:${seedPath}`;
     }
 
-    // 3. Enrich + classify (idempotent)
     endpoints = endpoints.map(ep => this.enrichEndpoint(ep));
-
-    // 4. Load additional seed domains if present
-    const domainsSeed = path.resolve('data/openapi-seed/ukg-wfm-domains.seed.json');
-    try {
-      const ds = JSON.parse(await fs.readFile(domainsSeed, 'utf-8'));
-      // Future: cross-reference domains
-    } catch {}
-
     this.cache = endpoints;
     return endpoints;
   }
 
-  private parseOpenApiToIntelligence(api: any): EndpointIntelligence[] {
+  private async ingestUkgCatalog(catalogUrl: string): Promise<EndpointIntelligence[]> {
+    const html = await fetch(catalogUrl).then(r => {
+      if (!r.ok) throw new Error(`Failed catalog fetch: ${r.status}`);
+      return r.text();
+    });
+
+    const jsonFiles = Array.from(
+      new Set(
+        [...html.matchAll(/href="([^"]+\.json)"/g)]
+          .map(m => new URL(m[1], catalogUrl).toString())
+      )
+    );
+
+    const all: EndpointIntelligence[] = [];
+
+    for (const url of jsonFiles) {
+      try {
+        const eps = await this.ingestOneOpenApi(url);
+        all.push(...eps);
+      } catch (e) {
+        console.warn(`[Ingestor] Failed ${url}`, e);
+      }
+    }
+
+    this.loadedFrom = `catalog:${catalogUrl} files:${jsonFiles.length}`;
+    return all;
+  }
+
+  private async ingestOneOpenApi(source: string): Promise<EndpointIntelligence[]> {
+    const api = await SwaggerParser.parse(source);
+    return this.parseOpenApiToIntelligence(api, source);
+  }
+
+  private parseOpenApiToIntelligence(api: any, source = ''): EndpointIntelligence[] {
     const results: EndpointIntelligence[] = [];
     const paths = api.paths || {};
-    const tagsByOp: Record<string, string[]> = {};
 
     for (const [p, methods] of Object.entries(paths) as [string, any][]) {
       for (const [method, op] of Object.entries(methods) as [string, any][]) {
-        if (!op || typeof op !== 'object' || !op.operationId) continue;
+        if (!op || typeof op !== 'object') continue;
+
         const m = method.toUpperCase() as HttpMethod;
-        const domain = this.inferDomainFromTags(op.tags || [], p);
-        const objType = this.inferObjectType(op, p);
+        if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(m)) continue;
+
+        const operationId =
+          op.operationId ||
+          `${m.toLowerCase()}_${p.replace(/[/{}/-]+/g, '_').replace(/^_|_$/g, '')}`;
 
         const intel: EndpointIntelligence = {
-          domain,
-          operationId: op.operationId,
+          domain: this.inferDomainFromTags(op.tags || [], p, source),
+          operationId,
           method: m,
           path: p,
           classification: 'DISCOVERY_ONLY',
-          objectType: objType,
+          objectType: this.inferObjectType(op, p),
           inputIdentifiers: this.extractInputIdentifiers(op),
           outputIdentifiers: this.extractOutputIdentifiers(op),
           referenceFields: this.extractReferenceFields(op),
@@ -86,13 +103,14 @@ export class CatalogIngestor {
           toolEligible: true,
           finalAnswerEligible: false,
           requiresConfirmation: m !== 'GET',
-          notes: op.summary || '',
+          notes: op.summary || op.description || '',
           tags: op.tags || []
         };
-        // Will be classified next
+
         results.push(intel);
       }
     }
+
     return results;
   }
 
@@ -101,67 +119,107 @@ export class CatalogIngestor {
     return { ...ep, ...classified };
   }
 
-  private inferDomainFromTags(tags: string[], path: string): string {
-    const lower = (tags.join(' ') + ' ' + path).toLowerCase();
+  private inferDomainFromTags(tags: string[], p: string, source = ''): string {
+    const lower = `${tags.join(' ')} ${p} ${source}`.toLowerCase();
+
     if (lower.includes('attendance')) return 'attendance';
-    if (lower.includes('schedule')) return lower.includes('setup') ? 'scheduling_setup' : 'scheduling';
-    if (lower.includes('timecard') || lower.includes('bulk')) return lower.includes('bulk') ? 'timekeeping_bulk_operations' : 'timekeeping_timecards';
-    if (lower.includes('timekeep')) return 'timekeeping';
+    if (lower.includes('employee-self-service')) return 'employee_self_service';
+    if (lower.includes('forecasting')) return 'forecasting';
+    if (lower.includes('healthcare-productivity')) return 'healthcare_productivity';
+    if (lower.includes('human-capital-management') || lower.includes('hcm')) return 'hcm';
     if (lower.includes('leave')) return 'leave';
-    if (lower.includes('punch') || lower.includes('device')) return 'universal_device_manager';
-    if (lower.includes('forecast')) return 'forecasting';
-    if (lower.includes('person') || lower.includes('employee')) return 'people';
-    if (lower.includes('common') || lower.includes('known') || lower.includes('hyperfind') || lower.includes('group')) return 'common_resources';
-    if (lower.includes('platform') || lower.includes('webhook')) return 'platform';
-    if (lower.includes('hcm')) return 'hcm';
-    if (lower.includes('assign')) return 'person_assignments';
-    if (lower.includes('health')) return 'healthcare_productivity';
-    if (lower.includes('self')) return 'employee_self_service';
+    if (lower.includes('person-assignments')) return 'person_assignments';
+    if (lower.includes('people') || lower.includes('person') || lower.includes('employee')) return 'people';
+    if (lower.includes('webhook')) return 'webhook_events';
+    if (lower.includes('scheduling-setup')) return 'scheduling_setup';
+    if (lower.includes('scheduling')) return 'scheduling';
+    if (lower.includes('timekeeping-bulk')) return 'timekeeping_bulk_operations';
+    if (lower.includes('timekeeping-setup')) return 'timekeeping_setup';
+    if (lower.includes('timekeeping-timecards')) return 'timekeeping_timecards';
+    if (lower.includes('timekeeping')) return 'timekeeping';
+    if (lower.includes('universal-device-manager')) return 'universal_device_manager';
+    if (lower.includes('common-resources')) return 'common_resources';
+    if (lower.includes('platform')) return 'platform';
+
     return 'platform';
   }
 
-  private inferObjectType(op: any, path: string): string {
-    if (op.responses?.['200']?.content) {
-      const ex = JSON.stringify(op.responses['200'].content);
-      if (ex.includes('Person')) return 'Person';
-      if (ex.includes('Timecard')) return 'Timecard';
-      if (ex.includes('Punch')) return 'Punch';
-      if (ex.includes('Schedule')) return 'Schedule';
-      if (ex.includes('KnownPlace') || path.includes('known')) return 'KnownPlace';
-      if (ex.includes('Group')) return 'EmployeeGroup';
-      if (ex.includes('Hyperfind')) return 'Hyperfind';
-    }
-    const seg = path.split('/').pop()?.replace(/[{}]/g, '') || 'Unknown';
-    return seg.charAt(0).toUpperCase() + seg.slice(1).replace(/_/g, '');
+  private inferObjectType(op: any, p: string): string {
+    const text = JSON.stringify(op).toLowerCase();
+
+    if (text.includes('person')) return 'Person';
+    if (text.includes('timecard')) return 'Timecard';
+    if (text.includes('punch')) return 'Punch';
+    if (text.includes('schedule')) return 'Schedule';
+    if (text.includes('known place') || text.includes('knownplace') || p.toLowerCase().includes('known')) return 'KnownPlace';
+    if (text.includes('employee group') || text.includes('employeegroup')) return 'EmployeeGroup';
+    if (text.includes('hyperfind')) return 'Hyperfind';
+    if (text.includes('pay code') || text.includes('paycode')) return 'PayCode';
+    if (text.includes('work rule') || text.includes('workrule')) return 'WorkRule';
+    if (text.includes('leave')) return 'LeaveCase';
+
+    const seg = p.split('/').filter(Boolean).pop()?.replace(/[{}]/g, '') || 'Unknown';
+    return seg.charAt(0).toUpperCase() + seg.slice(1).replace(/[_-]/g, '');
   }
 
   private extractInputIdentifiers(op: any): string[] {
     const ids: string[] = [];
-    const params = [...(op.parameters || []), ...(op.requestBody ? ['body'] : [])];
+
     for (const p of op.parameters || []) {
-      if (p.required || ['id', 'Id', 'number', 'date', 'qualifier'].some(k => (p.name || '').toLowerCase().includes(k.toLowerCase()))) {
-        ids.push(p.name);
+      const name = p.name || '';
+      const low = name.toLowerCase();
+      if (
+        p.required ||
+        low.includes('id') ||
+        low.includes('date') ||
+        low.includes('qualifier') ||
+        low.includes('person') ||
+        low.includes('employee')
+      ) {
+        ids.push(name);
       }
     }
+
     if (op.requestBody) ids.push('body');
+
     return Array.from(new Set(ids));
   }
 
-  private extractOutputIdentifiers(op: any): string[] {
-    // Heuristic: look at example or schema for id fields
-    return ['id', 'personId', 'employeeId', 'qualifier', 'persistentId'];
+  private extractOutputIdentifiers(_op: any): string[] {
+    return ['id', 'uuid', 'guid', 'personId', 'employeeId', 'qualifier', 'persistentId'];
   }
 
-  private extractReferenceFields(op: any): string[] {
-    // In real impl, deep walk schema $refs and properties
-    return ['id', 'ref', 'Id', 'managerId', 'jobId', 'orgRef', 'profileRef'];
+  private extractReferenceFields(_op: any): string[] {
+    return [
+      'id',
+      'ref',
+      'Id',
+      'Ref',
+      'guid',
+      'managerId',
+      'jobId',
+      'orgRef',
+      'profileRef',
+      'groupRef',
+      'locationRef'
+    ];
   }
 
   private inferRisk(method: HttpMethod, op: any): 'SAFE_READ' | 'CONTROLLED_WRITE' | 'DANGEROUS_WRITE' | 'DESTRUCTIVE' {
     if (method === 'GET') return 'SAFE_READ';
     if (method === 'DELETE') return 'DESTRUCTIVE';
-    const desc = (op.summary + ' ' + (op.description || '')).toLowerCase();
-    if (desc.includes('bulk') || desc.includes('all') || desc.includes('multiple')) return 'DANGEROUS_WRITE';
+
+    const desc = `${op.summary || ''} ${op.description || ''}`.toLowerCase();
+
+    if (
+      desc.includes('bulk') ||
+      desc.includes('multiple') ||
+      desc.includes('delete') ||
+      desc.includes('purge')
+    ) {
+      return 'DANGEROUS_WRITE';
+    }
+
     return 'CONTROLLED_WRITE';
   }
 
